@@ -1,42 +1,49 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {Howl} from 'howler';
+import { Howl } from 'howler';
 import * as mobilenet from '@tensorflow-models/mobilenet';
 import * as knnClassifier from '@tensorflow-models/knn-classifier';
-import { initNotifications, notify } from '@mycv/f8-notification';
+import Loader from 'react-loader-spinner';
 // eslint-disable-next-line no-unused-vars
 import * as tf from '@tensorflow/tfjs';
-import soundURL from "./assets/sound.mp3"
+import {
+  NOT_TOUCH_LABEL,
+  TOUCHED_LABEL,
+  TRAINING_TIME,
+  TOUCHED_CONFIDENT,
+} from './constants/constants';
+import soundURL from './assets/sound.mp3';
 import './App.css';
 
-var sound = new Howl({
+const sound = new Howl({
   src: [soundURL],
 });
 
-
-
-const NOT_TOUCH_LABEL = 'not_touch';
-const TOUCHED_LABEL = 'touched';
-const TRAINING_TIME = 50;
-const TOUCHED_CONFIDENT = 0.8;
-
 function App() {
-  const canPlaySound = useRef(true)
+  const canPlaySound = useRef(true);
   const video = useRef();
   const classifier = useRef();
   const mobilenetModule = useRef();
-  const [touched, setTouched] = useState(false)
+  const [touched, setTouched] = useState(false);
+  const [trainingOneProgress, setTrainingOneProgress] =
+    useState('Not Completed Yet');
+  const [trainingTwoProgress, setTrainingTwoProgress] =
+    useState('Not Completed Yet');
+  const [loader, setLoader] = useState(false);
+  const [runBtn, setRunBtn] = useState(true);
 
   const init = async () => {
     console.log('init');
     await setupCamera();
     console.log('setup camera successss');
 
+    // set up for knnCLassifier
     classifier.current = knnClassifier.create();
-
+    // set up for mobilenet
     mobilenetModule.current = await mobilenet.load();
+
     console.log('set up done');
+    setLoader(true);
     console.log('Dont touch your face and press train 1');
-    initNotifications({cooldown: 3000})
   };
 
   // turn on the camera
@@ -70,6 +77,8 @@ function App() {
 
       await training(label);
     }
+    if (label === NOT_TOUCH_LABEL) setTrainingOneProgress('Completed');
+    if (label === TOUCHED_LABEL) setTrainingTwoProgress('Completed');
   };
 
   /**
@@ -80,7 +89,6 @@ function App() {
    * @param {*} label
    *
    */
-
   const training = (label) => {
     return new Promise(async (resolve) => {
       const embedding = mobilenetModule.current.infer(
@@ -94,6 +102,7 @@ function App() {
     });
   };
 
+  // running function
   const run = async () => {
     const embedding = mobilenetModule.current.infer(
       //read doc
@@ -111,24 +120,22 @@ function App() {
     ) {
       console.log('Touched');
       // only play sound 1 time
-      if(canPlaySound.current) {
-        canPlaySound.current = false
+      if (canPlaySound.current) {
+        canPlaySound.current = false;
         sound.play();
       }
-      
-      notify('BO tay ra', {body: "you just touched your face"})
-      setTouched(true)
+
+      setTouched(true);
     } else {
       console.log('Not Touched');
-      setTouched(false)
+      setTouched(false);
     }
-
     // measure 5 times per second, endless loop
     await sleep(200);
-
     run();
   };
 
+  // Sleep function
   const sleep = (ms) => {
     return new Promise((resolve) => setTimeout(resolve, ms));
   };
@@ -136,28 +143,77 @@ function App() {
   useEffect(() => {
     init();
 
-    sound.on('end', function() {
-      canPlaySound.current = true
-    })
-    
+    sound.on('end', function () {
+      canPlaySound.current = true;
+    });
+
     return () => {};
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className={`main ${touched ? 'touched' : ''}`}>
+      {touched ? (
+        <h1 className='title'>Stop bite your nails</h1>
+      ) : (
+        <h1 className='title'>Dont bite your nails</h1>
+      )}
       <video className='video' autoPlay ref={video} />
-      <div className='control'>
-        <button className='btn' onClick={() => train(NOT_TOUCH_LABEL)}>
-          Train 1
-        </button>
-        <button className='btn' onClick={() => train(TOUCHED_LABEL)}>
-          Train 1
-        </button>
-        <button className='btn' onClick={() => run()}>
-          Run
-        </button>
-      </div>
+      {loader ? (
+        <div>
+          <div className='control'>
+            <button className='btn' onClick={() => train(NOT_TOUCH_LABEL)}>
+              Train 1: Dont bite your nails
+            </button>
+            <button className='btn' onClick={() => train(TOUCHED_LABEL)}>
+              Train 2: Bite your nails
+            </button>
+            <button  className='btn' onClick={() => run()}>
+              Run
+            </button>
+          </div>
+          <div className='progress'>
+            {trainingOneProgress === 'Completed' &&
+            trainingTwoProgress === 'Completed' ? (
+              <div style={{color: "green"}}>
+                {/* {setRunBtn(false)} */}
+                <h1>
+                  Training Completed, Press Run button to start the application
+                </h1>
+                <h1>
+                  You can now continue your work and we will warn you when you
+                  bite your nails
+                </h1>
+              </div>
+            ) : (
+              <div>
+                <h1
+                  className={`text ${
+                    trainingOneProgress === 'Completed' ? 'completed' : ''
+                  }`}
+                >
+                  Train 1: Don't bite your nails ({trainingOneProgress})
+                </h1>
+                <h1
+                  className={`text ${
+                    trainingTwoProgress === 'Completed' ? 'completed' : ''
+                  }`}
+                >
+                  Train 2: Bite your nails ({trainingTwoProgress})
+                </h1>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <Loader
+          type='Puff'
+          color='#00BFFF'
+          height={100}
+          width={100}
+          timeout={1500} //1.5 secs
+        />
+      )}
     </div>
   );
 }
