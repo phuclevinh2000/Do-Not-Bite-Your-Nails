@@ -1,1 +1,1 @@
-This application is use to give warning wherever you touched your face when working on your computer.
+This application is use to give warning wherever you bite your nails when working on your computer.
