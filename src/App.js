@@ -29,7 +29,7 @@ function App() {
   const [trainingTwoProgress, setTrainingTwoProgress] =
     useState('Not Completed Yet');
   const [loader, setLoader] = useState(false);
-  const [runBtn, setRunBtn] = useState(true);
+  // const [runBtn, setRunBtn] = useState(true);
 
   const init = async () => {
     console.log('init');
