@@ -5,3 +5,12 @@
 This app only works on computer
 
 [Demo](https://dont-bite-your-nails.netlify.app/)
+
+# Technology
+  - Reactjs
+  - TensorflowJs
+  - Flex box
+  
+# Implement 
+ It would be nice if you can save all the data, then you dont have to train your machine again each time you refresh the page
+
